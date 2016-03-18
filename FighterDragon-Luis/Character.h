@@ -23,6 +23,9 @@ class Character
         virtual ~Character();
         void logic();
         void draw();
+        int posicion();
+        void irPos(int x1);
+        void retroseso();
         Move* getMove(SDL_Renderer *renderer, string name, int sprite_amount);
         vector<Hitbox*> getHitboxes();
     protected:

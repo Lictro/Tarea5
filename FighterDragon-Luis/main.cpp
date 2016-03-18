@@ -1,5 +1,8 @@
 #include<SDL.h>
 #include<SDL_image.h>
+#include<SDL_mixer.h>
+#include<stdio.h>
+#include<string>
 #include<iostream>
 #include<list>
 #include "Character.h"
@@ -8,13 +11,19 @@
 #include "InputManager.h"
 
 using namespace std;
-
+int resu=0;
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Event Event;
 SDL_Texture *background;
-SDL_Rect rect_background,rect_character;
-
+SDL_Texture *punta1;
+SDL_Texture *punta2;
+SDL_Rect rect_background,rect_character,rec_punta1,rec_punta2;
+int score1=0;
+int score2=0;
+Mix_Music *gMusic=NULL;
+Mix_Chunk *gChunk=NULL;
+bool success=true;
 
 int main( int argc, char* args[] )
 {
@@ -24,10 +33,30 @@ int main( int argc, char* args[] )
         return 10;
     }
     //Creates a SDL Window
-    if((window = SDL_CreateWindow("Image Loading", 100, 100, 1200/*WIDTH*/, 600/*HEIGHT*/, SDL_WINDOW_RESIZABLE | SDL_RENDERER_PRESENTVSYNC)) == NULL)
+    if((window = SDL_CreateWindow("Image Loading", 100, 100, 1100/*WIDTH*/, 800/*HEIGHT*/, SDL_WINDOW_RESIZABLE | SDL_RENDERER_PRESENTVSYNC)) == NULL)
     {
         return 20;
     }
+
+    if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 ){
+                    printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
+                    success = false;
+    }
+
+    gMusic = Mix_LoadMUS( "sf2.wav" );
+    if( gMusic == NULL )
+    {
+        printf( "Failed to load beat music! SDL_mixer Error: %s\n", Mix_GetError() );
+        success = false;
+    }
+
+    gChunk = Mix_LoadWAV( "golpe.wav" );
+    if( gChunk == NULL )
+    {
+        printf( "Failed to load scratch sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+        success = false;
+    }
+
     //SDL Renderer
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
     if (renderer == NULL)
@@ -37,21 +66,34 @@ int main( int argc, char* args[] )
     }
 
     //Init textures
-    background = IMG_LoadTexture(renderer,"fondo.png");
+    string path;
+    ifstream in("fondo.txt");
+    in>>path;
+    background = IMG_LoadTexture(renderer,path.c_str());
     rect_background.x = 0;
     rect_background.y = 0;
-    rect_background.w = 500;
-    rect_background.h = 250;
+    rect_background.w = 1100;
+    rect_background.h = 800;
 
-    Character* character = new Character(renderer,200,550,false,"assets/inputs_player1.txt");
-    Character* character2 = new Character(renderer,600,550,true,"assets/inputs_player2.txt");
+    rec_punta1.x=300;
+    rec_punta1.y=0;
+    rec_punta1.w=101;
+    rec_punta1.h=73;
+
+    rec_punta2.x=700;
+    rec_punta2.y=0;
+    rec_punta2.w=101;
+    rec_punta2.h=73;
+
+    Character* character = new Character(renderer,350,750,false,"assets/inputs_player1.txt");
+    Character* character2 = new Character(renderer,750,750,true,"assets/inputs_player2.txt");
 
     map<DeviceButton*,Button*>input_map;
 
     int frame=0;
 
     double last_fame_ticks=SDL_GetTicks();
-
+    Mix_PlayMusic(gMusic,-1);
     //Main Loop
     while(true)
     {
@@ -70,12 +112,34 @@ int main( int argc, char* args[] )
                     rect_character.x--;
             }
         }
+        //jugador 1
+        if(score1==0){
+            punta1 = IMG_LoadTexture(renderer,"0.png");
+        }else if(score1==1){
+            punta1 = IMG_LoadTexture(renderer,"1.png");
+        }else if(score1==2){
+            punta1 = IMG_LoadTexture(renderer,"2.png");
+        }else if(score1==3){
+            punta1 = IMG_LoadTexture(renderer,"3.png");
+        }
+        //jugador 2
+        if(score2==0){
+            punta2 = IMG_LoadTexture(renderer,"0.png");
+        }else if(score2==1){
+            punta2 = IMG_LoadTexture(renderer,"1.png");
+        }else if(score2==2){
+            punta2 = IMG_LoadTexture(renderer,"2.png");
+        }else if(score2==3){
+            punta2 = IMG_LoadTexture(renderer,"3.png");
+        }
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
 
 
         SDL_RenderCopy(renderer, background, NULL, &rect_background);
+        SDL_RenderCopy(renderer, punta1, NULL, &rec_punta1);
+        SDL_RenderCopy(renderer, punta2, NULL, &rec_punta2);
 
         character->logic();
         character->draw();
@@ -116,6 +180,8 @@ int main( int argc, char* args[] )
                     if(currentKeyStates[ SDL_SCANCODE_X ] || currentKeyStates[ SDL_SCANCODE_Z ])
                     {
                         if(damage(rect1,rect2)){
+                            Mix_PlayChannel( -1, gChunk, 0 );
+                            character2->retroseso();
                             drawRect(renderer,rect2.x,rect2.y,rect2.w,rect2.h,0,0,255,0);
                             cout<<"Ahhhh!"<<endl;
                         }
@@ -123,6 +189,8 @@ int main( int argc, char* args[] )
                     if(currentKeyStates[ SDL_SCANCODE_N ] ||currentKeyStates[ SDL_SCANCODE_B ])
                     {
                         if(damage(rect1,rect2)){
+                            Mix_PlayChannel( -1, gChunk, 0 );
+                            character->retroseso();
                             drawRect(renderer,rect1.x,rect1.y,rect1.w,rect1.h,0,0,255,0);
                             cout<<"Ahhhh!"<<endl;
                         }
@@ -130,7 +198,7 @@ int main( int argc, char* args[] )
                     cout<<"Colision!"<<endl;
                 }else
                 {
-                    //cout<<"No Colision!"<<endl;
+                   //Hola pito
                 }
             }
         }
@@ -152,7 +220,23 @@ int main( int argc, char* args[] )
             SDL_Delay(sleep_time);
         last_fame_ticks=SDL_GetTicks();
 
+        if(character->x>=950 || character->x<=100){
+        score2=score2+1;
+        character->irPos(350);
+        character2->irPos(750);
+        }
+        if(character2->x>=950 || character2->x<=100){
+        score1=score1+1;
+        character->irPos(350);
+        character2->irPos(750);
+        }
 
+        if(score1==3){
+            cout<<"Jugador 1 ganoooo"<<endl;
+
+        }else if(score2==3){
+            cout<<"Jugador 2 ganoooo"<<endl;
+        }
 
 //        drawRect(renderer,10,30,50,100,
 //                 0,255,255,0);

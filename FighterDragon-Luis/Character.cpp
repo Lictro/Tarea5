@@ -20,6 +20,22 @@ std::string toString(int number)
     return returnvalue;
 }
 
+int Character::posicion(){
+    return this->x;
+}
+
+void Character::irPos(int x2){
+x=x2;
+}
+
+void Character::retroseso(){
+    if(!this->flipped){
+        this->x-=20;
+    }else{
+        this->x+=20;
+    }
+}
+
 Character::Character(SDL_Renderer* renderer, int x, int y, bool flipped, string input_manager_file)
 {
     this->x=x;
